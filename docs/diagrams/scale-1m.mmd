@@ -1,0 +1,15 @@
+graph LR
+    PW["🌐 Partner Webhook\nEvent per client ready"] --> AG["🔒 API Gateway\nLambda Authorizer\nHMAC / JWT"]
+    SM["🔐 Databricks Secret Scope"] --> AG
+    AG --> LND["λ Landing Lambda\nWrite raw JSON → S3"]
+    LND --> S3R["🗄 S3\nraw/events/partner=/event_id=\n[boundary · replay checkpoint]"]
+    S3R --> AL["🔁 Databricks Auto Loader\ncloudFiles source\nExactly-once via checkpoint"]
+    AL --> STR["⚡ Structured Streaming Job\nMicro-batch Spark"]
+    STR --> DLB["🔷 Delta Bronze\nraw_events"]
+    STR --> DLS["🔷 Delta Silver\nMERGE on event_id\naccounts · holdings · txns"]
+    STR --> DLQ["⚠️ Delta Quarantine\nAlert on quarantine_count > 0"]
+    DLS --> RDSP["🔀 RDS Proxy"]
+    RDSP --> AP["🐘 Aurora Postgres\nUpsert via JDBC"]
+    DLS --> OPT["📓 Databricks Workflow\nNightly OPTIMIZE\nRecent partitions only"]
+    OPT --> DLG["🔷 Delta Gold\nclient_portfolio_current"]
+    STR --> CW["📊 CloudWatch\nAuto Loader backlog\nStream lag · Trigger duration"]

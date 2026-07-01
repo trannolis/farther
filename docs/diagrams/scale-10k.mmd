@@ -1,0 +1,17 @@
+graph LR
+    DWS["⏰ Databricks Workflows\n7am Scheduled Trigger"] --> T1["📓 auth_notebook\nOAuth 2.0 Token"]
+    SM["🔐 Databricks Secret Scope"] --> T1
+    T1 --> T2["📓 request_notebook\nPOST → request_id"]
+    T2 --> T3["📓 poll_notebook\nRetry Backoff"]
+    T3 --> T4["📓 download_notebook\nStream ZIP → S3"]
+    T4 --> S3Z["🗄 S3\nraw/zips/  [boundary]"]
+    S3Z --> T5["📓 extract_notebook\nUnzip → S3 raw/clients/"]
+    T5 --> S3C["🗄 S3\nraw/clients/  [boundary]"]
+    S3C --> T6["⚡ process_notebook\nSpark Auto-Scale Cluster\nParse · Validate · MERGE\nOPTIMIZE after write"]
+    T6 --> DLB["🔷 Delta Lake Bronze"]
+    T6 --> DLS["🔷 Delta Lake Silver\naccounts · holdings · txns"]
+    T6 --> DLQ["⚠️ Delta Quarantine"]
+    T6 --> RDSP["🔀 RDS Proxy\nConnection Pooling"]
+    RDSP --> AP["🐘 Aurora Postgres"]
+    DLS --> T7["📓 reconcile_notebook\nCounts · Totals · Alerts"]
+    T7 --> CW["📊 CloudWatch\nJob duration · Write latency\nQuarantine rate"]

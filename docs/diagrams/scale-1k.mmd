@@ -1,0 +1,17 @@
+graph LR
+    DWS["⏰ Databricks Workflows\n7am Scheduled Trigger"] --> T1["📓 auth_notebook\nOAuth 2.0 Token"]
+    SM["🔐 Databricks Secret Scope\nbacked by Secrets Manager"] --> T1
+    T1 --> T2["📓 request_notebook\nPOST → request_id"]
+    T2 --> T3["📓 poll_notebook\nPoll Status · Retry Backoff"]
+    T3 --> T4["📓 download_notebook\nStream ZIP → S3 raw/zips/"]
+    T4 --> S3Z["🗄 S3\nraw/zips/  [boundary]"]
+    S3Z --> T5["📓 extract_notebook\nUnzip → S3 raw/clients/"]
+    T5 --> S3C["🗄 S3\nraw/clients/  [boundary]"]
+    S3C --> T6["⚡ process_notebook\nSpark · Parallel per client\nParse · Validate · MERGE"]
+    T6 --> DLB["🔷 Delta Lake Bronze\nraw_events / as_of_date="]
+    T6 --> DLS["🔷 Delta Lake Silver\naccounts · holdings · txns\nvalidated + normalized"]
+    T6 --> DLQ["⚠️ Delta Quarantine\nInvalid records"]
+    T6 --> JDBC["🔗 JDBC"]
+    JDBC --> AP["🐘 Aurora Postgres\nProduct API queries"]
+    DLS --> T7["📓 reconcile_notebook\nFile counts · Control totals"]
+    T7 --> CW["📊 CloudWatch\nCustom metrics · Alarms"]
